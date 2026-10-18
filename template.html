@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>STAMP STUDIO</title>
+<style>
+  :root {
+    --washi: #f6f1e5;
+    --washi-deep: #ece4d1;
+    --panel: #fbf8ef;
+    --sumi: #2b2622;
+    --muted: #7d6e5b;
+    --line: #d8ccb3;
+    --shu: #b8402c;        /* 朱 */
+    --shu-deep: #8f2e1f;
+    --ai: #2f4a6e;         /* 藍 */
+    --kin: #b08d57;        /* 金茶 */
+    --serif: "Hiragino Mincho ProN", "Yu Mincho", "游明朝", "Noto Serif JP", "Hiragino Serif", serif;
+    --sans: "Hiragino Sans", "Yu Gothic UI", "Noto Sans JP", sans-serif;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: var(--serif);
+    color: var(--sumi);
+    background:
+      radial-gradient(1200px 700px at 15% -10%, #fbf8f0 0%, transparent 60%),
+      linear-gradient(180deg, var(--washi), var(--washi-deep));
+    min-height: 100vh;
+  }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px clamp(16px, 3vw, 36px);
+    border-bottom: 1px solid var(--line);
+    margin: 0 clamp(14px, 3vw, 36px);
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .logo {
+    width: 40px; height: 40px; display: grid; place-items: center;
+    background: var(--shu); color: #fff8ee; font-family: var(--serif); font-size: 18px; font-weight: 700;
+    border-radius: 3px; box-shadow: inset 0 0 0 2px rgba(255,255,255,.15);
+  }
+  .brand h1 { margin: 0; font-size: 17px; letter-spacing: .35em; font-weight: 700; font-family: var(--serif); }
+  .brand p { margin: 3px 0 0; font-size: 12px; color: var(--muted); letter-spacing: .12em; font-family: var(--serif); }
+
+  .app {
+    display: grid; gap: 24px; padding: 22px clamp(14px, 3vw, 36px) 40px;
+    grid-template-columns: minmax(0, 1fr) 360px; max-width: 1360px; margin: 0 auto;
+  }
+
+  /* 3D 画面 */
+  .viewport {
+    position: relative; border-radius: 4px; overflow: hidden; min-height: 640px;
+    background:
+      radial-gradient(circle at 50% 30%, #fdfbf5 0%, #efe6d1 80%);
+    border: 1px solid var(--line);
+    box-shadow: 0 1px 0 rgba(255,255,255,.7) inset, 0 16px 40px rgba(60,40,20,.08);
+  }
+  #scene { position: absolute; inset: 0; }
+  #scene canvas { display: block; width: 100% !important; height: 100% !important; touch-action: none; }
+  .vp-title {
+    position: absolute; top: 18px; left: 22px; font-size: 12px; letter-spacing: .35em; color: var(--muted); font-family: var(--serif);
+    pointer-events: none;
+  }
+  .vp-status {
+    position: absolute; top: 16px; right: 18px; display: flex; gap: 8px; align-items: center;
+    font-size: 12px; color: var(--muted); pointer-events: none; font-family: var(--serif);
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid #b9a987; background: transparent; }
+  .dot.on { background: var(--inkc, #2b2622); border-color: transparent; }
+  .vp-bottom {
+    position: absolute; left: 0; right: 0; bottom: 18px; display: flex; flex-direction: column; align-items: center; gap: 12px;
+    pointer-events: none;
+  }
+  .hint { pointer-events: none; }
+  .hint { font-size: 12px; color: var(--muted); background: rgba(251,248,239,.85); padding: 6px 14px; border: 1px solid var(--line); font-family: var(--serif); }
+
+  .btn {
+    appearance: none; border: none; cursor: pointer; font: inherit; font-family: var(--serif); font-weight: 700;
+    border-radius: 2px; padding: 12px 20px; transition: transform .15s, filter .2s, box-shadow .2s, background .2s;
+    letter-spacing: .12em;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn-wood {
+    color: #fff8ee; background: var(--shu);
+    box-shadow: 0 8px 18px rgba(143,46,31,.28);
+  }
+  .btn-wood:hover { background: var(--shu-deep); }
+  .btn-wood.big { font-size: 18px; padding: 14px 52px; letter-spacing: .3em; }
+  .btn-ghost { background: var(--panel); color: var(--sumi); border: 1px solid var(--line); }
+  .btn-ghost:hover { border-color: var(--kin); }
+
+  /* パネル */
+  .panel {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 3px;
+    box-shadow: 0 1px 0 rgba(255,255,255,.7) inset, 0 12px 30px rgba(60,40,20,.06);
+    display: flex; flex-direction: column; overflow: hidden; align-self: start; position: sticky; top: 16px;
+  }
+  .tabs {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; padding: 0;
+    border-bottom: 1px solid var(--line); background: #f3ecdc;
+  }
+  .tab {
+    appearance: none; border: none; background: transparent; padding: 13px 4px 11px; cursor: pointer;
+    font: inherit; font-family: var(--serif); font-size: 13px; font-weight: 700; color: var(--muted);
+    letter-spacing: .08em; transition: color .2s; position: relative;
+  }
+  .tab.on { color: var(--shu); }
+  .tab.on::after {
+    content: ""; position: absolute; left: 22%; right: 22%; bottom: -1px; height: 2px; background: var(--shu);
+  }
+  .pane { display: none; padding: 22px 20px; gap: 18px; flex-direction: column; }
+  .pane.on { display: flex; }
+  .sec-title {
+    font-size: 12px; letter-spacing: .2em; color: var(--muted); font-weight: 700; margin: 0; font-family: var(--serif);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .sec-title::before { content: ""; width: 6px; height: 6px; background: var(--shu); display: inline-block; }
+  .note { font-size: 12px; color: var(--muted); line-height: 1.8; margin: 0; font-family: var(--serif); }
+
+  .drop {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    min-height: 120px; padding: 16px; text-align: center; cursor: pointer; font-size: 13px; color: var(--muted);
+    border: 1px dashed var(--kin); border-radius: 2px; background: #fffdf6; transition: all .2s; font-family: var(--serif);
+  }
+  .drop:hover, .drop.over { border-color: var(--shu); background: #fff; color: var(--sumi); }
+  .drop b { color: var(--sumi); font-size: 15px; }
+  .drop .ic { font-size: 26px; }
+  .drop.small { min-height: 0; padding: 14px; font-size: 12px; }
+
+  .field { display: flex; flex-direction: column; gap: 10px; }
+  .field-head { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; font-family: var(--serif); }
+  .field-head span { color: var(--shu); font-variant-numeric: tabular-nums; }
+  input[type=range] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 2px; border-radius: 0; outline: none;
+    background: linear-gradient(90deg, var(--shu), var(--shu)) no-repeat 0 0 / var(--p, 50%) 100%, #d8ccb3;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 22px; border-radius: 2px; background: var(--shu);
+    border: none; box-shadow: 0 2px 6px rgba(143,46,31,.3); cursor: pointer;
+  }
+  input[type=range]::-moz-range-thumb { width: 14px; height: 20px; border-radius: 2px; background: var(--shu); border: none; }
+
+  .toggle { display: flex; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 700; cursor: pointer; user-select: none; font-family: var(--serif); }
+  .toggle input { display: none; }
+  .switch { width: 44px; height: 24px; border-radius: 2px; background: #ddd2bd; position: relative; transition: background .2s; flex: none; }
+  .switch::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 1px;
+    background: #fffdf6; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: transform .2s;
+  }
+  .toggle input:checked + .switch { background: var(--ai); }
+  .toggle input:checked + .switch::after { transform: translateX(20px); }
+
+  .chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .chipw { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); cursor: pointer; font-family: var(--serif); }
+  .chip { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #fffdf6; cursor: pointer; transition: transform .15s; box-shadow: 0 0 0 1px var(--line), 0 4px 10px rgba(60,40,20,.12); }
+  .chipw:hover .chip { transform: scale(1.05); }
+  .chipw.on .chip { box-shadow: 0 0 0 2px var(--sumi), 0 4px 10px rgba(60,40,20,.2); }
+  .chipw.on { color: var(--sumi); font-weight: 700; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .divider { height: 1px; background: var(--line); }
+
+  .binprev { width: 100%; height: auto; border-radius: 2px; background: #fff; border: 1px solid var(--line); }
+  .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .modes3 { grid-template-columns: 1fr 1fr 1fr; }
+  .modes label { position: relative; }
+  .modes input { position: absolute; opacity: 0; pointer-events: none; }
+  .modes span { display: block; text-align: center; padding: 10px 6px; font-size: 13px; font-weight: 700; color: var(--muted); background: #f3ecdc; border: 1px solid transparent; cursor: pointer; font-family: var(--serif); }
+  .modes input:checked + span { background: #fffdf6; color: var(--shu); border-color: var(--kin); }
+
+  .presets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .pbtn { appearance: none; border: 1px solid transparent; cursor: pointer; font: inherit; font-family: var(--serif); font-size: 14px; font-weight: 700; padding: 11px 6px; background: #f3ecdc; color: var(--muted); transition: all .2s; }
+  .pbtn.on { background: #fffdf6; color: var(--shu); border-color: var(--kin); }
+
+  .sliders { width: 88%; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+  .game-hud {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 2;
+    display: flex; gap: 14px; align-items: center; white-space: nowrap;
+    background: rgba(251,248,239,.92); border: 1px solid var(--line); padding: 8px 16px;
+    font-family: var(--serif); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums;
+  }
+  .game-hud[hidden] { display: none; }
+  #ghTime { font-size: 18px; font-weight: 700; color: var(--shu); }
+
+  /* モバイル */
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; gap: 16px; padding: 14px 12px 32px; }
+    .viewport { min-height: 0; aspect-ratio: auto; height: 50vh; height: 50dvh; min-height: 300px; max-height: 560px; border-radius: 4px; }
+    .panel { position: static; }
+    header { padding: 12px 14px; margin: 0 12px; }
+    .vp-title { top: 14px; left: 16px; }
+    .vp-status { top: 12px; right: 12px; }
+    .hint { display: none; }
+    .game-hud { top: 10px; gap: 8px; font-size: 11px; padding: 6px 10px; }
+    #ghTime { font-size: 15px; }
+  }
+  @media (max-width: 420px) {
+    .vp-bottom { bottom: 14px; }
+    .btn-wood.big { width: 80%; padding: 14px; }
+    .tab { font-size: 12px; padding: 12px 2px 10px; }
+    .viewport { height: 46vh; height: 46dvh; }
+    .sliders { width: 94%; }
+  }
+  </style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">S</div>
+    <div>
+      <h1>STAMP STUDIO</h1>
+      <p>画像から、木のハンコをつくる</p>
+    </div>
+  </div>
+</header>
+
+<div class="app">
+  <section class="viewport" id="vp">
+    <div id="scene"></div>
+    <div class="vp-title">3D DESK</div>
+    <div class="game-hud" id="gameHud" hidden>
+      <span id="ghTime">00:00.0</span>
+      <span id="ghSheet"></span>
+      <span id="ghLeft"></span>
+    </div>
+    <div class="vp-status">
+      <span id="inkState">インク：未</span>
+      <span class="dot" id="inkDot"></span>
+    </div>
+    <div class="vp-bottom">
+      <div class="hint">台をタップでインク ／ 紙の好きなところをタップで押印 ／ ドラッグで視点変更</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <nav class="tabs">
+      <button class="tab on" data-tab="img">画像</button>
+      <button class="tab" data-tab="ink">インク</button>
+      <button class="tab" data-tab="paper">紙</button>
+      <button class="tab" data-tab="game">挑戦</button>
+    </nav>
+
+    <div class="pane on" id="tab-img">
+      <p class="sec-title">PREVIEW（ここで結果を確認）</p>
+      <canvas id="bin" width="240" height="240" class="binprev"></canvas>
+
+      <div class="sliders">
+        <div class="field">
+          <div class="field-head">しきい値 <span id="thrVal">128</span></div>
+          <input type="range" id="thr" min="0" max="255" value="128">
+        </div>
+        <label class="toggle">白黒を反転<input type="checkbox" id="inv"><span class="switch"></span></label>
+        <p class="sec-title">TONE（表現方法）</p>
+        <div class="modes modes3">
+          <label><input type="radio" name="tone" value="thr" checked><span>2値化</span></label>
+          <label><input type="radio" name="tone" value="dither"><span>ディザ</span></label>
+          <label><input type="radio" name="tone" value="dot"><span>網点</span></label>
+        </div>
+        <div class="field">
+          <div class="field-head">網点の細かさ <span id="cellVal">6</span></div>
+          <input type="range" id="cell" min="3" max="12" value="6">
+        </div>
+        <div class="field">
+          <div class="field-head">拡大率 <span><span id="zoomVal">100</span>%</span></div>
+          <input type="range" id="zoom" min="50" max="200" value="100">
+        </div>
+        <div class="field">
+          <div class="field-head">左右の位置 <span id="offXVal">0</span></div>
+          <input type="range" id="offX" min="-100" max="100" value="0">
+        </div>
+        <div class="field">
+          <div class="field-head">上下の位置 <span id="offYVal">0</span></div>
+          <input type="range" id="offY" min="-100" max="100" value="0">
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <p class="sec-title">SOURCE（画像を読み込む）</p>
+      <label class="drop" id="drop">
+        <span class="ic">🖼</span>
+        <span><b>画像を選択</b><br>またはここにドロップ</span>
+        <input type="file" id="file" accept="image/*" hidden>
+      </label>
+
+      <div class="divider"></div>
+      <p class="sec-title">PRESET（ワンタップの判子）</p>
+      <div class="presets">
+        <button class="pbtn" data-preset="heart">❤ ハート</button>
+        <button class="pbtn" data-preset="yoku">よくできました</button>
+        <button class="pbtn" data-preset="gokuhi">極秘</button>
+        <button class="pbtn" data-preset="failed">FAILED</button>
+        <button class="pbtn" data-preset="paw">肉球</button>
+      </div>
+
+      <p class="sec-title">FRAME</p>
+      <label class="toggle">枠をつける<input type="checkbox" id="frame"><span class="switch"></span></label>
+      <div class="field">
+        <div class="field-head">枠の太さ <span id="frameVal">8</span></div>
+        <input type="range" id="frameW" min="2" max="24" value="8">
+      </div>
+      <p class="sec-title">FRAME STYLE</p>
+      <div class="modes">
+        <label><input type="radio" name="fmode" value="image" checked><span>画像に沿う</span></label>
+        <label><input type="radio" name="fmode" value="square"><span>判子の四角いっぱい</span></label>
+      </div>
+    </div>
+
+    <div class="pane" id="tab-ink">
+      <p class="sec-title">INK COLOR</p>
+      <div class="chips" id="chips">
+        <label class="chipw on" data-color="#1b1b1b"><span class="chip" style="background:#1b1b1b"></span>黒</label>
+        <label class="chipw" data-color="#c0392b"><span class="chip" style="background:#c0392b"></span>赤</label>
+        <label class="chipw" data-color="#1f4e9a"><span class="chip" style="background:#1f4e9a"></span>青</label>
+        <label class="chipw" data-color="#2e7d32"><span class="chip" style="background:#2e7d32"></span>緑</label>
+      </div>
+      <p class="note">色を変えるとスタンプ台のインクも変わります。インクは3回押すごとに付け直しが必要です。</p>
+
+      <p class="sec-title">EFFECTS（演出）</p>
+      <label class="toggle">音（ポン）<input type="checkbox" id="fxSound"><span class="switch"></span></label>
+      <label class="toggle">インクのにじみ<input type="checkbox" id="fxSpread"><span class="switch"></span></label>
+      <p class="note">演出は初期状態でオフです。必要なものだけオンにしてください。</p>
+    </div>
+
+    <div class="pane" id="tab-game">
+      <p class="sec-title">TIME ATTACK（枠に押す）</p>
+      <p class="note">用紙の枠の中に、判子を順に押してください。5枚の用紙をすべて押し終わるまでの時間を競います。枠の外は押せません。</p>
+      <button class="btn btn-wood" id="gameStart">スタート</button>
+      <button class="btn btn-ghost" id="gameStop" hidden>中止</button>
+      <p class="note" id="gameResult"></p>
+      <p class="note" id="gameBest"></p>
+    </div>
+
+    <div class="pane" id="tab-paper">
+      <p class="sec-title">PAPER</p>
+      <p class="note">紙の上をタップすると押印されます。押した跡はPNGで保存できます。</p>
+      <p class="sec-title">PAPER IMAGE</p>
+      <label class="drop small">
+        <span><b>テスト用紙などの画像を選択</b><br>スマホの写真や自作の絵もOK</span>
+        <input type="file" id="paperFile" accept="image/*" hidden>
+      </label>
+      <button class="btn btn-ghost" id="paperReset">白紙に戻す</button>
+      <div class="row2">
+        <button class="btn btn-ghost" id="viewPaper">紙を大きく見る</button>
+        <button class="btn btn-ghost" id="viewDesk">全体を見る</button>
+      </div>
+      <div class="row2">
+        <button class="btn btn-ghost" id="clear">紙をクリア</button>
+        <button class="btn btn-ghost" id="save">PNG保存</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<canvas id="paper" width="1200" height="900" style="display:none"></canvas>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"1954b47c125f43f8b4338b3c4f804e4f","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>
